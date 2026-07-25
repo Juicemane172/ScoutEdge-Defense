@@ -51,9 +51,16 @@ def _bg(slide, color):
     return rect
 
 
+def _emu(v):
+    """Round any EMU-ish value (which may have become a plain float after
+    arithmetic like width/2) down to a clean int, since python-pptx requires
+    integer EMUs and silently writes invalid XML otherwise."""
+    return int(round(v))
+
+
 def _textbox(slide, left, top, width, height, text, size, color, bold=False, italic=False,
              font=BODY_FONT, align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.TOP):
-    box = slide.shapes.add_textbox(left, top, width, height)
+    box = slide.shapes.add_textbox(_emu(left), _emu(top), _emu(width), _emu(height))
     tf = box.text_frame
     tf.word_wrap = True
     tf.vertical_anchor = anchor
@@ -370,4 +377,10 @@ def build_presentation(df, opponent="Opponent", week="1", game_date=None):
                          "Explosive = 15+ yards.", PASS_BLUE, "TOP FORM")
     build_formation_slide(prs, df)
     build_red_zone_slide(prs, df)
+
+    # Lazy import avoids a circular import (hit_chart_builder imports shared
+    # colors/helpers from this module).
+    from hit_chart_builder import build_hit_chart_slides
+    build_hit_chart_slides(prs, df, opponent=opponent)
+
     return prs

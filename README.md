@@ -29,6 +29,30 @@ favorite runs/passes, formation tendencies, and red zone keys — styled to
 match the original DefensiveIQ deck (dark title/red-zone slides, colored
 data tables). Swap in your own team/opponent logos and it's ready to present.
 
+Plus **Formation Hit Chart slides** — the classic 4-panel-per-page format:
+formation name + snap count, run/pass split, backfield tendency, a quick
+alignment diagram, and the top 3 run/pass concepts out of that look. Follows
+your rule of thumb: top 6 formations, skipping any run fewer than 7 times.
+
+**The alignment diagrams read your own formation-naming tags:**
+- Base names like DEUCE, TRIPS, SLOT, BUNCH, CLUSTER are treated as open/
+  spread sets — even an 11-personnel "TE" is drawn flexed out at receiver
+  depth, not attached to the line.
+- Everything else (PRO, TREY, DOUBLES, etc.) is treated as TE-based: the TE
+  is drawn tight to the tackle, on the line — unless the name carries a
+  **YO** tag (e.g. "TREY YO"), in which case it's drawn tight to the tackle
+  horizontally but stepped off the ball, matching a Y-off alignment.
+- A **FIB** tag (Formation In Boundary) flips the strong side of the
+  diagram to the left/boundary instead of the default right/field side —
+  so "TWIN SPLIT FIB" correctly draws 2 receivers to the boundary and 1 to
+  the field.
+
+These three tags (base name, YO, FIB) are read directly off your FORMATION
+column text, so as you keep tagging film with the same vocabulary, new
+opponents' hit charts will follow the same rules automatically. If you
+start using a new base name that should count as "open" (not TE-based),
+add it to `OPEN_BASE_NAMES` at the top of `hit_chart_builder.py`.
+
 ## Setup
 
 ```bash
@@ -64,6 +88,14 @@ skip the slide deck.
   don't match what you see on tape.
 - `report_builder.py` — builds all 13 Excel tabs from the analyzed data.
 - `pptx_builder.py` — builds the 7-slide scouting-deck PowerPoint.
+- `hit_chart_builder.py` — builds the Formation Hit Chart slides (appended
+  to the end of the same deck). **Honest caveat on the alignment diagrams:**
+  the receiver/TE/back position letters (X, Z, A, B, H, T, etc.) follow a
+  generic, common scouting convention inferred from your PERSONNEL and
+  FORMATION FAMILY columns — not a verified match to this specific
+  opponent's own numbering system. Relabel in PowerPoint if your staff uses
+  different letters; the formation name, snap count, run/pass split, and
+  concept lists next to it are fully data-driven and accurate.
 - `run_report.py` — command-line entry point (Excel + PowerPoint).
 - `app.py` — Streamlit UI (Excel + PowerPoint download buttons).
 
