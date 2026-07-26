@@ -63,9 +63,16 @@ def dd_bucket(dn, dist):
     if pd.isna(dn):
         return "OTHER"
     dn = int(dn)
+    if dn == 0:
+        # Hudl tags the first snap of a new possession as DN=0. In practice
+        # this always comes with DIST=10 in real exports - it's "P & 10"
+        # (Possession and 10), the first-down of a new series, not a random
+        # zero. Treat it as its own bucket rather than folding it into OTHER.
+        return "P & 10"
     if dn == 1:
         return "1ST & 10" if (pd.isna(dist) or dist >= 10) else "1ST & SHORT"
     if dn == 2:
+        # 2nd down: Short 1-3, Medium 4-6, Long 7+
         if pd.isna(dist):
             return "2ND & MEDIUM"
         if dist >= 7:
@@ -75,9 +82,10 @@ def dd_bucket(dn, dist):
         else:
             return "2ND & SHORT"
     if dn == 3:
+        # 3rd down uses wider bands than 2nd: Short 1-3, Medium 4-8, Long 9+
         if pd.isna(dist):
             return "3RD & MEDIUM"
-        if dist >= 7:
+        if dist >= 9:
             return "3RD & LONG"
         elif dist >= 4:
             return "3RD & MEDIUM"
@@ -85,7 +93,7 @@ def dd_bucket(dn, dist):
             return "3RD & SHORT"
     if dn == 4:
         return "4TH DOWN"
-    return "OTHER"  # DN==0 -> kickoff / drive-start / extra point etc.
+    return "OTHER"
 
 
 def is_success(dn, dist, gain):

@@ -136,6 +136,26 @@ All of this is driven by constants at the top of `report_builder.py`
 (`ZONE_STYLE`, `situation_color()`, `TAB_COLORS`, `TITLE_FILLS`) — tweak
 those in one place if you want to shift the palette.
 
+## Down & distance thresholds
+
+- **2nd down:** Short = 1-3, Medium = 4-6, Long = 7+
+- **3rd down:** Short = 1-3, Medium = 4-8, Long = 9+ (wider bands than 2nd,
+  per DeAirus's own convention)
+
+These live in one place, `dd_bucket()` in `analyzer.py`, and drive every
+sheet and slide that breaks plays out by situation. If you ever want to
+shift a cutoff, that function is the only place it needs to change.
+
+## Down & distance edge cases
+
+Hudl tags the first snap of a new possession as **DN=0**. In every real
+export this comes paired with **DIST=10**, so the tool now reads it as its
+own proper situation — **P & 10** (Possession and 10) — instead of silently
+dropping it into a catch-all bucket. It shows up everywhere down/distance
+situations do: the Down & Distance and Situational Summary Excel tabs, the
+Game Day Call Sheet, and as its own panel (first in line) on the Down &
+Distance Hit Chart slides in the PowerPoint deck.
+
 ## Honest caveats
 
 This was rebuilt by reverse-engineering your own uploaded input file

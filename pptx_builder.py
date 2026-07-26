@@ -208,6 +208,7 @@ def _add_table(slide, left, top, width, height, header, rows, col_widths,
 
 
 DD_SLIDE_ROWS = [
+    ("P & 10", "P & 10"),
     ("1st & 10", "1ST & 10"), ("2nd & Short", "2ND & SHORT"), ("2nd & Medium", "2ND & MEDIUM"),
     ("2nd & Long", "2ND & LONG"), ("3rd & Short", "3RD & SHORT"), ("3rd & Medium", "3RD & MEDIUM"),
     ("3rd & Long", "3RD & LONG"), ("4th Down", "4TH DOWN"),

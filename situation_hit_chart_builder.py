@@ -23,8 +23,10 @@ from hit_chart_builder import draw_run_pass_split_box
 TEAL = (0x0E, 0x70, 0x60)
 PURPLE = (0x4A, 0x23, 0x5A)
 MAROON = (0x7B, 0x24, 0x1C)
+AMBER = (0xB7, 0x8B, 0x00)  # readable dark-gold text; pure yellow is illegible on white
 
 DD_SITUATIONS_ORDERED = [
+    ("P & 10", "P & 10"),
     ("1st & 10", "1ST & 10"),
     ("1st & Short", "1ST & SHORT"),
     ("2nd & Short", "2ND & SHORT"),
@@ -39,9 +41,11 @@ DD_SITUATIONS_ORDERED = [
 
 def situation_color(bucket):
     """Down-progression urgency color, matching the same scheme used in the
-    Excel workbook: teal (1st, safe) -> blue (2nd) -> red (3rd) -> maroon
-    (4th, most critical)."""
+    Excel workbook: yellow (P&10, drive start) -> teal (1st, safe) -> blue
+    (2nd) -> red (3rd) -> maroon (4th, most critical)."""
     s = bucket.upper()
+    if "P & 10" in s:
+        return AMBER
     if "4TH" in s:
         return MAROON
     if "3RD" in s:

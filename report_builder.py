@@ -134,7 +134,13 @@ def _header_row(ws, row, headers, colors=None):
         c.alignment = Alignment(wrap_text=True, vertical="center", horizontal="center")
 
 
-def _label_cell(ws, r, c, text, color, text_color="FFFFFF"):
+def _label_cell(ws, r, c, text, color, text_color=None):
+    if text_color is None:
+        # Auto-pick readable text color: light fills (like yellow) get black
+        # text, dark fills get white. Avoids illegible white-on-yellow.
+        rr, gg, bb = int(color[0:2], 16), int(color[2:4], 16), int(color[4:6], 16)
+        luminance = 0.299 * rr + 0.587 * gg + 0.114 * bb
+        text_color = "000000" if luminance > 160 else "FFFFFF"
     cell = ws.cell(row=r, column=c, value=text)
     cell.font = Font(bold=True, color=text_color, name="Arial", size=10)
     cell.fill = PatternFill("solid", fgColor=color)
@@ -154,6 +160,14 @@ def _autosize(ws, widths=None):
 
 def _write_row(ws, r, values, fills=None):
     for i, v in enumerate(values, start=1):
+        if v is None:
+            # Don't touch the cell's value/font - this column is often a
+            # label cell already styled by _label_cell just before this
+            # call, and overwriting its font here would silently clobber
+            # the bold/colored text. Still apply a fill if one was passed.
+            if fills and i - 1 < len(fills) and fills[i - 1]:
+                ws.cell(row=r, column=i).fill = fills[i - 1]
+            continue
         cell = ws.cell(row=r, column=i, value=v)
         cell.font = BASE_FONT
         if fills and i - 1 < len(fills) and fills[i - 1]:
@@ -190,14 +204,14 @@ def build_field_zone_tendencies(wb, df):
     _title(ws, "FIELD ZONE TENDENCIES", span=10, sheet_name="2. Field Zone Tendencies")
     ws.cell(row=2, column=1, value="  Gray=plays  Red%=Run  Blue%=Pass  Yellow=Call Idea").font = Font(italic=True, size=9)
     ws.cell(row=2, column=1).fill = PatternFill("solid", fgColor=NEUTRAL_TINT_A)
-    dd_cols = ["1st Down", "2nd & 7+", "2nd & 4-6", "2nd & 1-3", "3rd & 7+", "3rd & 4-6", "3rd & 1-3", "4th Down"]
+    dd_cols = ["1st Down", "2nd & 7+", "2nd & 4-6", "2nd & 1-3", "3rd & 9+", "3rd & 4-8", "3rd & 1-3", "4th Down"]
     dd_map = {
         "1st Down": lambda s: s["DN"] == 1,
         "2nd & 7+": lambda s: (s["DN"] == 2) & (s["DIST"] >= 7),
         "2nd & 4-6": lambda s: (s["DN"] == 2) & (s["DIST"].between(4, 6)),
         "2nd & 1-3": lambda s: (s["DN"] == 2) & (s["DIST"].between(1, 3)),
-        "3rd & 7+": lambda s: (s["DN"] == 3) & (s["DIST"] >= 7),
-        "3rd & 4-6": lambda s: (s["DN"] == 3) & (s["DIST"].between(4, 6)),
+        "3rd & 9+": lambda s: (s["DN"] == 3) & (s["DIST"] >= 9),
+        "3rd & 4-8": lambda s: (s["DN"] == 3) & (s["DIST"].between(4, 8)),
         "3rd & 1-3": lambda s: (s["DN"] == 3) & (s["DIST"].between(1, 3)),
         "4th Down": lambda s: s["DN"] == 4,
     }
@@ -310,7 +324,7 @@ def build_hash_tendencies(wb, df):
     _autosize(ws, widths=[26] + [9] * 9 + [18, 18, 18])
 
 
-DD_SITUATIONS = ["1ST & 10", "1ST & SHORT", "2ND & LONG", "2ND & MEDIUM", "2ND & SHORT",
+DD_SITUATIONS = ["P & 10", "1ST & 10", "1ST & SHORT", "2ND & LONG", "2ND & MEDIUM", "2ND & SHORT",
                  "3RD & LONG", "3RD & MEDIUM", "3RD & SHORT", "4TH DOWN"]
 ZONE_SITUATIONS = [("RED ZONE", "RZ"), ("GOAL LINE", "GL"), ("BACKED UP", "BZ")]
 
@@ -430,7 +444,7 @@ def build_formation_tendencies(wb, df):
 
 
 SITUATIONAL_ROWS = [
-    ("P & 10 (Drive Start)", lambda df: df[df["DN"] == 0]),
+    ("P & 10", lambda df: df[df["DD_BUCKET"] == "P & 10"]),
     ("1ST DOWN", lambda df: df[df["DN"] == 1]),
     ("2ND & LONG", lambda df: df[df["DD_BUCKET"] == "2ND & LONG"]),
     ("2ND & MEDIUM", lambda df: df[df["DD_BUCKET"] == "2ND & MEDIUM"]),
@@ -541,8 +555,8 @@ def build_practice_scripts(wb, df):
 
 
 CALL_SHEET_SITUATIONS = [
-    "1st & 10", "1st & 10 (Own Half)", "1st & 10 (Opp Half)", "2nd & Long (8+)",
-    "2nd & Medium (4-7)", "2nd & Short (1-3)", "3rd & Long (7+)", "3rd & Medium (4-6)",
+    "P & 10 (Drive Start)", "1st & 10", "1st & 10 (Own Half)", "1st & 10 (Opp Half)", "2nd & Long (7+)",
+    "2nd & Medium (4-6)", "2nd & Short (1-3)", "3rd & Long (9+)", "3rd & Medium (4-8)",
     "3rd & Short (1-3)", "4th Down", "Red Zone — 1st", "Red Zone — 2nd", "Red Zone — 3rd",
     "Goal Line", "Backed Up", "Coming Out", "Two-Minute (Lead)", "Two-Minute (Trail)",
     "Must-Have Plays", "Two-Point Play", "Overtime",
@@ -570,7 +584,7 @@ def build_game_day_call_sheet(wb, df, opponent, week):
     _header_row(ws, 3, ["Situation", "Run%", "Pass%", "Top Run", "Top Pass", "Form", "", "BIGGEST TENDENCIES", "", "", ""],
                 colors=[None, RUN_RED, PASS_BLUE, None, None, None, None, PASS_BLUE])
 
-    dd_labels = [("1st & 10", "1ST & 10"), ("2nd & Short", "2ND & SHORT"), ("2nd & Med", "2ND & MEDIUM"),
+    dd_labels = [("P & 10", "P & 10"), ("1st & 10", "1ST & 10"), ("2nd & Short", "2ND & SHORT"), ("2nd & Med", "2ND & MEDIUM"),
                  ("2nd & Long", "2ND & LONG"), ("3rd & Short", "3RD & SHORT"), ("3rd & Med", "3RD & MEDIUM"),
                  ("3rd & Long", "3RD & LONG"), ("4th Down", "4TH DOWN")]
     r = 4
