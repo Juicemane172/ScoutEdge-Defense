@@ -383,4 +383,7 @@ def build_presentation(df, opponent="Opponent", week="1", game_date=None):
     from hit_chart_builder import build_hit_chart_slides
     build_hit_chart_slides(prs, df, opponent=opponent)
 
+    from situation_hit_chart_builder import build_situation_hit_chart_slides
+    build_situation_hit_chart_slides(prs, df, opponent=opponent)
+
     return prs

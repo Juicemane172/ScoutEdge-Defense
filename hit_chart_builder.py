@@ -241,6 +241,50 @@ def draw_alignment_diagram(slide, left, top, width, height, family, personnel, t
         _dot(slide, interp(weak_start_x, weak_end_x, frac), los_y, r, WR_COLOR, weak_labels[i])
 
 
+def _bullets(items):
+    lines = []
+    for entry in items:
+        if entry == "—":
+            continue
+        name, cnt_str = entry.rsplit(" (", 1)
+        cnt = cnt_str.rstrip(")")
+        lines.append(f"\u2022  {name} - {cnt}X")
+    return "\n".join(lines) if lines else "\u2022  —"
+
+
+def draw_run_pass_split_box(slide, left, top, width, height, run_concepts, pass_concepts):
+    """Draws the bordered TOP RUNS | TOP PASSES box shared by every hit-chart
+    panel (formation-based or situation-based)."""
+    split_box = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, _emu(left), _emu(top), _emu(width), _emu(height))
+    split_box.fill.background()
+    split_box.line.color.rgb = BLACK
+    split_box.line.width = Pt(1)
+    split_box.shadow.inherit = False
+    mid_x = left + width / 2
+    divider = slide.shapes.add_connector(1, _emu(mid_x), _emu(top), _emu(mid_x), _emu(top + height))
+    divider.line.color.rgb = BLACK
+    divider.line.width = Pt(1)
+
+    _textbox(slide, left + Inches(0.06), top + Inches(0.04), width / 2 - Inches(0.14), Inches(0.2),
+              "TOP RUNS:", 10.5, BLACK, bold=True, font=BODY_FONT)
+    _textbox(slide, mid_x + Inches(0.1), top + Inches(0.04), width / 2 - Inches(0.14), Inches(0.2),
+              "TOP PASSES:", 10.5, BLACK, bold=True, font=BODY_FONT)
+
+    run_box = slide.shapes.add_textbox(_emu(left + Inches(0.06)), _emu(top + Inches(0.26)),
+                                        _emu(width / 2 - Inches(0.2)), _emu(height - Inches(0.3)))
+    tf = run_box.text_frame; tf.word_wrap = True
+    for i, line in enumerate(_bullets(run_concepts).split("\n")):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        r = p.add_run(); r.text = line; r.font.size = Pt(10); r.font.name = BODY_FONT; r.font.color.rgb = BODY_TEXT
+
+    pass_box = slide.shapes.add_textbox(_emu(mid_x + Inches(0.1)), _emu(top + Inches(0.26)),
+                                        _emu(width / 2 - Inches(0.2)), _emu(height - Inches(0.3)))
+    tf = pass_box.text_frame; tf.word_wrap = True
+    for i, line in enumerate(_bullets(pass_concepts).split("\n")):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        r = p.add_run(); r.text = line; r.font.size = Pt(10); r.font.name = BODY_FONT; r.font.color.rgb = BODY_TEXT
+
+
 def _panel(slide, left, top, width, height, form, fdf):
     box = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, _emu(left), _emu(top), _emu(width), _emu(height))
     box.fill.background()
@@ -282,48 +326,10 @@ def _panel(slide, left, top, width, height, form, fdf):
     # Top runs / top passes split box
     split_top = diagram_top + diagram_h + Inches(0.05)
     split_h = top + height - split_top - Inches(0.08)
-    split_box = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, _emu(left + Inches(0.1)), _emu(split_top),
-                                        _emu(width - Inches(0.2)), _emu(split_h))
-    split_box.fill.background()
-    split_box.line.color.rgb = BLACK
-    split_box.line.width = Pt(1)
-    split_box.shadow.inherit = False
-    mid_x = left + width / 2
-    divider = slide.shapes.add_connector(1, _emu(mid_x), _emu(split_top), _emu(mid_x), _emu(split_top + split_h))
-    divider.line.color.rgb = BLACK
-    divider.line.width = Pt(1)
-
     run_concepts = top_n_counts(fdf[fdf["PLAY TYPE"] == "Run"]["CONCEPT"], 3)
     pass_concepts = top_n_counts(fdf[fdf["PLAY TYPE"] == "Pass"]["CONCEPT"], 3)
-
-    _textbox(slide, left + Inches(0.16), split_top + Inches(0.04), width / 2 - Inches(0.24), Inches(0.2),
-              "TOP RUNS:", 10.5, BLACK, bold=True, font=BODY_FONT)
-    _textbox(slide, mid_x + Inches(0.1), split_top + Inches(0.04), width / 2 - Inches(0.24), Inches(0.2),
-              "TOP PASSES:", 10.5, BLACK, bold=True, font=BODY_FONT)
-
-    def bullets(items):
-        lines = []
-        for entry in items:
-            if entry == "—":
-                continue
-            name, cnt_str = entry.rsplit(" (", 1)
-            cnt = cnt_str.rstrip(")")
-            lines.append(f"\u2022  {name} - {cnt}X")
-        return "\n".join(lines) if lines else "\u2022  —"
-
-    run_box = slide.shapes.add_textbox(_emu(left + Inches(0.16)), _emu(split_top + Inches(0.26)),
-                                        _emu(width / 2 - Inches(0.3)), _emu(split_h - Inches(0.3)))
-    tf = run_box.text_frame; tf.word_wrap = True
-    for i, line in enumerate(bullets(run_concepts).split("\n")):
-        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-        r = p.add_run(); r.text = line; r.font.size = Pt(10); r.font.name = BODY_FONT; r.font.color.rgb = BODY_TEXT
-
-    pass_box = slide.shapes.add_textbox(_emu(mid_x + Inches(0.1)), _emu(split_top + Inches(0.26)),
-                                        _emu(width / 2 - Inches(0.3)), _emu(split_h - Inches(0.3)))
-    tf = pass_box.text_frame; tf.word_wrap = True
-    for i, line in enumerate(bullets(pass_concepts).split("\n")):
-        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-        r = p.add_run(); r.text = line; r.font.size = Pt(10); r.font.name = BODY_FONT; r.font.color.rgb = BODY_TEXT
+    draw_run_pass_split_box(slide, left + Inches(0.1), split_top, width - Inches(0.2), split_h,
+                             run_concepts, pass_concepts)
 
 
 def build_hit_chart_slides(prs, df, opponent="Opponent"):

@@ -34,6 +34,14 @@ formation name + snap count, run/pass split, backfield tendency, a quick
 alignment diagram, and the top 3 run/pass concepts out of that look. Follows
 your rule of thumb: top 6 formations, skipping any run fewer than 7 times.
 
+Plus **Down & Distance Hit Chart slides** — same 4-panel-per-page format,
+one panel per situation (1st & 10, 1st & Short, 2nd & Short/Medium/Long,
+3rd & Short/Medium/Long, 4th Down). Since a down/distance situation doesn't
+have one alignment to draw, each panel shows a run/pass proportion bar and
+top 3 formations used in that situation instead, plus the same top run/pass
+concepts box. Situation labels follow the same down-progression color scale
+as the Excel workbook: teal (1st) → blue (2nd) → red (3rd) → maroon (4th).
+
 **The alignment diagrams read your own formation-naming tags:**
 - Base names like DEUCE, TRIPS, SLOT, BUNCH, CLUSTER are treated as open/
   spread sets — even an 11-personnel "TE" is drawn flexed out at receiver
@@ -86,7 +94,9 @@ skip the slide deck.
   (zone yard-line boundaries, explosive-play thresholds, success-rate formula)
   live at the top of this file with comments — edit them if your tendencies
   don't match what you see on tape.
-- `report_builder.py` — builds all 13 Excel tabs from the analyzed data.
+- `report_builder.py` — builds all 13 Excel tabs from the analyzed data,
+  including tab colors, section colors, and cell shading matched directly
+  to a real DefensiveIQ workbook's own formatting (see below).
 - `pptx_builder.py` — builds the 7-slide scouting-deck PowerPoint.
 - `hit_chart_builder.py` — builds the Formation Hit Chart slides (appended
   to the end of the same deck). **Honest caveat on the alignment diagrams:**
@@ -96,8 +106,35 @@ skip the slide deck.
   opponent's own numbering system. Relabel in PowerPoint if your staff uses
   different letters; the formation name, snap count, run/pass split, and
   concept lists next to it are fully data-driven and accurate.
+- `situation_hit_chart_builder.py` — builds the Down & Distance Hit Chart
+  slides (also appended to the deck). Fully data-driven — no generic
+  guessing involved, since it's just run/pass split, top formations, and
+  top concepts per situation.
 - `run_report.py` — command-line entry point (Excel + PowerPoint).
 - `app.py` — Streamlit UI (Excel + PowerPoint download buttons).
+
+## Color coding
+
+Every tab now matches the color system from a real DefensiveIQ workbook
+(pulled directly from its cell fills, not guessed):
+
+- **Run columns** are always tinted light red, **pass columns** light blue,
+  everywhere in the workbook — Run Concepts, Pass Concepts, Formation
+  Tendencies, Down & Distance, Situational Summary, Game Day Call Sheet.
+- **Field zones** each get their own color that's reused for that zone's
+  label cell and row tint everywhere it appears: Backed Up = red, Open
+  Field = blue, Midfield = teal, Fringe = olive, Red Zone = red (distinct
+  tint from Backed Up), Goal Line = purple.
+- **Down & distance situations** follow an urgency scale: 1st down = teal,
+  2nd down = blue, 3rd down = red, 4th down = dark maroon (most critical),
+  drive-start = yellow.
+- **Formation names** are sky blue wherever they appear as a row label.
+- Every sheet tab is colored to match its theme (e.g. Run Concepts tab is
+  dark red, Pass Concepts tab is navy).
+
+All of this is driven by constants at the top of `report_builder.py`
+(`ZONE_STYLE`, `situation_color()`, `TAB_COLORS`, `TITLE_FILLS`) — tweak
+those in one place if you want to shift the palette.
 
 ## Honest caveats
 
