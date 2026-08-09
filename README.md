@@ -156,6 +156,29 @@ situations do: the Down & Distance and Situational Summary Excel tabs, the
 Game Day Call Sheet, and as its own panel (first in line) on the Down &
 Distance Hit Chart slides in the PowerPoint deck.
 
+## Practice Scripts (multi-day)
+
+The Practice Scripts tab now covers three full practice days, matching the
+original workbook's structure — not just Monday:
+
+- **Monday** — Favorites (all downs)
+- **Tuesday** — 2nd down situations only
+- **Wednesday** — 3rd down situations only
+
+Each day has the same five sections: Formation Alignment (top 12, padded
+with blank numbered slots if fewer formations qualify), Inside Script (top
+5 run concepts, 2 real reps each), Perimeter Script (top 8 pass concepts, 2
+real reps each), and two Team Scripts that interleave the run/pass reps
+into a team-period rep sheet.
+
+Each "rep" is a real play instance pulled from your film — real hash, real
+formation, real down & distance for that specific snap — not a fabricated
+placeholder, and reps for the same concept prefer different hashes where
+your film has them, for actual practice variety. The run/pass interleave
+pattern in the Team Scripts (run, run, pass, pass...) is a clean, documented
+convention I built rather than an exact replica of the original's internal
+selection logic, which wasn't fully recoverable from the data alone.
+
 ## Honest caveats
 
 This was rebuilt by reverse-engineering your own uploaded input file

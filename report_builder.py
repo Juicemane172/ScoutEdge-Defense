@@ -504,54 +504,161 @@ def build_situational_summary(wb, df):
     _autosize(ws)
 
 
+DN_ORDINAL = {1: "1st", 2: "2nd", 3: "3rd", 4: "4th"}
+
+
+def _dn_dist_label(dn, dist):
+    if pd.isna(dn):
+        return "—"
+    dn = int(dn)
+    if dn == 0:
+        return "P & 10"
+    ordinal = DN_ORDINAL.get(dn)
+    if not ordinal or pd.isna(dist):
+        return "—"
+    return f"{ordinal} & {int(dist)}"
+
+
+def _pick_reps(cdf, n=2):
+    """Pick up to n real play instances for practice reps, preferring
+    different hashes for variety rather than two identical looks."""
+    picked = []
+    picked_idx = set()
+    seen_hash = set()
+    for idx, row in cdf.iterrows():
+        h = row.get("HASH")
+        if h not in seen_hash:
+            picked.append(row)
+            picked_idx.add(idx)
+            seen_hash.add(h)
+        if len(picked) >= n:
+            break
+    if len(picked) < n:
+        for idx, row in cdf.iterrows():
+            if len(picked) >= n:
+                break
+            if idx not in picked_idx:
+                picked.append(row)
+                picked_idx.add(idx)
+    return picked[:n]
+
+
+def _formation_alignment_block(ws, r, day_df):
+    section_fill = PatternFill("solid", fgColor=NAVY)
+    c = ws.cell(row=r, column=1, value="FORMATION ALIGNMENT  (top 12)")
+    c.font = Font(bold=True, italic=True, color="FFFFFF")
+    c.fill = section_fill
+    r += 1
+    _header_row(ws, r, ["#", "HASH", "FORMATION", "PERS", "FRONT", "COVERAGE"])
+    r += 1
+    counts = day_df["FORMATION"].value_counts().head(12)
+    for i in range(1, 13):
+        gray = PatternFill("solid", fgColor=zebra_fill(r))
+        if i <= len(counts):
+            form, cnt = counts.index[i - 1], counts.iloc[i - 1]
+            fdf = day_df[day_df["FORMATION"] == form]
+            top_hash = fdf["HASH"].mode().iloc[0] if not fdf["HASH"].mode().empty else "—"
+            _write_row(ws, r, [i, top_hash, form, None, None, None], fills=[gray] * 6)
+        else:
+            _write_row(ws, r, [i, None, None, None, None, None], fills=[gray] * 6)
+        r += 1
+    return r + 1
+
+
+def _concept_script_block(ws, r, day_df, play_type, n_concepts, header_text, header_color, reps=2):
+    """Writes a run or pass concept script (top n_concepts, `reps` real
+    instances each). Returns (next_row, [(concept, [rep_rows]), ...]) so
+    Team Scripts can reuse the same concept/rep data."""
+    header_fill = PatternFill("solid", fgColor=header_color)
+    c = ws.cell(row=r, column=1, value=header_text)
+    c.font = Font(bold=True, italic=True, color="FFFFFF")
+    c.fill = header_fill
+    r += 1
+    concept_label = "RUN CONCEPT" if play_type == "Run" else "PASS CONCEPT"
+    _header_row(ws, r, ["#", "HASH", "FORMATION", concept_label, "DN/DIST", "PERS", "FRONT", "COVERAGE"],
+                colors=[header_color] * 8)
+    r += 1
+    tint = RUN_FILL if play_type == "Run" else PASS_FILL
+
+    sub = day_df[day_df["PLAY TYPE"] == play_type]
+    counts = sub["CONCEPT"].value_counts().head(n_concepts)
+    concept_reps = []
+    i = 1
+    for concept in counts.index:
+        cdf = sub[sub["CONCEPT"] == concept]
+        rep_rows = _pick_reps(cdf, reps)
+        concept_reps.append((concept, rep_rows))
+        for rep in rep_rows:
+            _write_row(ws, r, [i, rep.get("HASH"), rep.get("FORMATION"), concept,
+                               _dn_dist_label(rep.get("DN"), rep.get("DIST")), None, None, None],
+                       fills=[tint] * 8)
+            r += 1
+            i += 1
+    return r + 1, concept_reps
+
+
+def _team_script_block(ws, r, title, run_pool, pass_pool, run_used, pass_used, slots=10):
+    """Builds a team-period script by interleaving not-yet-used run/pass
+    concept reps (run, run, pass, pass, ...) until `slots` rows are filled
+    or the pools run out."""
+    section_fill = PatternFill("solid", fgColor=NAVY)
+    c = ws.cell(row=r, column=1, value=title)
+    c.font = Font(bold=True, italic=True, color="FFFFFF")
+    c.fill = section_fill
+    r += 1
+    _header_row(ws, r, ["#", "HASH", "FORMATION", "PLAY", "DN/DIST", "PERS", "FRONT", "COVERAGE"])
+    r += 1
+
+    entries = []
+    ri, pi = run_used, pass_used
+    while len(entries) < slots and (ri < len(run_pool) or pi < len(pass_pool)):
+        if ri < len(run_pool):
+            concept, reps = run_pool[ri]
+            for rep in reps:
+                entries.append((concept, rep, RUN_FILL))
+            ri += 1
+        if len(entries) >= slots:
+            break
+        if pi < len(pass_pool):
+            concept, reps = pass_pool[pi]
+            for rep in reps:
+                entries.append((concept, rep, PASS_FILL))
+            pi += 1
+
+    for i, (concept, rep, tint) in enumerate(entries[:slots], start=1):
+        _write_row(ws, r, [i, rep.get("HASH"), rep.get("FORMATION"), concept,
+                           _dn_dist_label(rep.get("DN"), rep.get("DIST")), None, None, None],
+                   fills=[tint] * 8)
+        r += 1
+    return r + 1, ri, pi
+
+
+PRACTICE_DAYS = [
+    ("MONDAY", "FAVORITES (ALL DOWNS)", None),
+    ("TUESDAY", "2ND DOWN", 2),
+    ("WEDNESDAY", "3RD DOWN", 3),
+]
+
+
 def build_practice_scripts(wb, df):
     ws = wb.create_sheet("11. Practice Scripts")
     _title(ws, "PRACTICE SCRIPTS   ·   auto-pulled from film", span=8, sheet_name="11. Practice Scripts")
-    ws.cell(row=3, column=1, value="MONDAY  ·  FAVORITES (ALL DOWNS)").font = Font(bold=True)
-    section_fill = PatternFill("solid", fgColor=NAVY)
-    c = ws.cell(row=4, column=1, value="FORMATION ALIGNMENT  (top 12)")
-    c.font = Font(bold=True, italic=True, color="FFFFFF")
-    c.fill = section_fill
-    _header_row(ws, 5, ["#", "HASH", "FORMATION", "PERS", "FRONT", "COVERAGE"])
-    counts = df["FORMATION"].value_counts().head(12)
-    r = 6
-    for i, (form, cnt) in enumerate(counts.items(), start=1):
-        fdf = df[df["FORMATION"] == form]
-        top_hash = fdf["HASH"].mode().iloc[0] if not fdf["HASH"].mode().empty else "—"
-        gray = PatternFill("solid", fgColor=zebra_fill(r))
-        _write_row(ws, r, [i, top_hash, form, None, None, None], fills=[gray] * 6)
+    r = 3
+    for day, subtitle, dn_filter in PRACTICE_DAYS:
+        day_df = df if dn_filter is None else df[df["DN"] == dn_filter]
+        if len(day_df) == 0:
+            continue
+        ws.cell(row=r, column=1, value=f"{day}  ·  {subtitle}").font = Font(bold=True, size=12)
         r += 1
-    r += 1
-    run_fill_hdr = PatternFill("solid", fgColor=RUN_RED)
-    c = ws.cell(row=r, column=1, value="INSIDE SCRIPT  (top run concepts, coach fills front/coverage)")
-    c.font = Font(bold=True, italic=True, color="FFFFFF")
-    c.fill = run_fill_hdr
-    r += 1
-    _header_row(ws, r, ["#", "HASH", "RUN CONCEPT", "FORMATION", "FRONT", "COVERAGE"], colors=[RUN_RED] * 6)
-    r += 1
-    run_counts = df[df["PLAY TYPE"] == "Run"]["CONCEPT"].value_counts().head(12)
-    for i, (concept, cnt) in enumerate(run_counts.items(), start=1):
-        cdf = df[(df["PLAY TYPE"] == "Run") & (df["CONCEPT"] == concept)]
-        top_hash = cdf["HASH"].mode().iloc[0] if not cdf["HASH"].mode().empty else "—"
-        top_form = top_n_counts(cdf["FORMATION"], 1)[0].split(" (")[0]
-        _write_row(ws, r, [i, top_hash, concept, top_form, None, None], fills=[RUN_FILL] * 6)
+        r = _formation_alignment_block(ws, r, day_df)
+        r, run_reps = _concept_script_block(ws, r, day_df, "Run", 5,
+                                             "INSIDE SCRIPT  (top run concepts, coach fills front/coverage)", RUN_RED)
+        r, pass_reps = _concept_script_block(ws, r, day_df, "Pass", 8,
+                                              "PERIMETER SCRIPT  (favorite passes)", PASS_BLUE)
+        r, ri, pi = _team_script_block(ws, r, "TEAM SCRIPT 1", run_reps, pass_reps, 0, 0, slots=10)
+        r, ri, pi = _team_script_block(ws, r, "TEAM SCRIPT 2", run_reps, pass_reps, ri, pi, slots=10)
         r += 1
-    r += 1
-    pass_fill_hdr = PatternFill("solid", fgColor=PASS_BLUE)
-    c = ws.cell(row=r, column=1, value="SKELETON / PASS SCRIPT  (top pass concepts)")
-    c.font = Font(bold=True, italic=True, color="FFFFFF")
-    c.fill = pass_fill_hdr
-    r += 1
-    _header_row(ws, r, ["#", "HASH", "PASS CONCEPT", "FORMATION", "FRONT", "COVERAGE"], colors=[PASS_BLUE] * 6)
-    r += 1
-    pass_counts = df[df["PLAY TYPE"] == "Pass"]["CONCEPT"].value_counts().head(12)
-    for i, (concept, cnt) in enumerate(pass_counts.items(), start=1):
-        cdf = df[(df["PLAY TYPE"] == "Pass") & (df["CONCEPT"] == concept)]
-        top_hash = cdf["HASH"].mode().iloc[0] if not cdf["HASH"].mode().empty else "—"
-        top_form = top_n_counts(cdf["FORMATION"], 1)[0].split(" (")[0]
-        _write_row(ws, r, [i, top_hash, concept, top_form, None, None], fills=[PASS_FILL] * 6)
-        r += 1
-    _autosize(ws)
+    _autosize(ws, widths=[5, 7, 14, 16, 10, 8, 10, 12])
 
 
 CALL_SHEET_SITUATIONS = [
