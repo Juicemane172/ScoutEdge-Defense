@@ -1,5 +1,5 @@
 """
-DefensiveIQ (personal build) — Streamlit front-end.
+ScoutEdge Defense (personal build) — Streamlit front-end.
 
 Run locally with:
     pip install streamlit pandas openpyxl
@@ -14,10 +14,10 @@ from analyzer import load_playlist
 from report_builder import build_workbook
 from pptx_builder import build_presentation
 
-st.set_page_config(page_title="DefensiveIQ (Personal)", page_icon="🏈", layout="centered")
+st.set_page_config(page_title="ScoutEdge Defense", page_icon="🏈", layout="centered")
 
 st.markdown(
-    "<h1 style='margin-bottom:0'>DEFENSIVE<span style='color:#e04b3c'>IQ</span></h1>"
+    "<h1 style='margin-bottom:0'>SCOUTEDGE <span style='color:#e04b3c'>DEFENSE</span></h1>"
     "<p style='color:#9ca3af;margin-top:0'>Upload your Hudl playlist export and get your full "
     "opponent tendency report in seconds.</p>",
     unsafe_allow_html=True,
@@ -69,14 +69,14 @@ if run:
         col_a.download_button(
             "📊 EXCEL WORKBOOK",
             data=buf,
-            file_name=f"{opponent.replace(' ', '_')}_Week{week}_DefensiveIQ.xlsx",
+            file_name=f"{opponent.replace(' ', '_')}_Week{week}_ScoutEdge.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True,
         )
         col_b.download_button(
             "🎬 PLAYER PRESENTATION",
             data=pptx_buf,
-            file_name=f"{opponent.replace(' ', '_')}_Week{week}_DefensiveIQ_Scouting.pptx",
+            file_name=f"{opponent.replace(' ', '_')}_Week{week}_ScoutEdge_Scouting.pptx",
             mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
             use_container_width=True,
         )

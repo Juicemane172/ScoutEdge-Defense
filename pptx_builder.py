@@ -1,6 +1,7 @@
 """
 Builds a 'Player Presentation' scouting-report deck from analyzed play data,
-matching the look of the DefensiveIQ sample deck: dark title/red-zone slides,
+matching the look of the DefensiveIQ sample deck (now rebranded ScoutEdge
+Defense): dark title/red-zone slides,
 white content slides with metric cards and colored data tables.
 """
 
@@ -105,7 +106,7 @@ def build_title_slide(prs, opponent, week, game_date, plays_analyzed):
              f"Week {week}  ·  {date_str}  ·  {plays_analyzed} plays analyzed", 16,
              SUBTITLE_BLUE, font=BODY_FONT, align=PP_ALIGN.CENTER)
     _textbox(slide, Inches(0.8), Inches(6.9), Inches(11.7), Inches(0.4),
-             "DefensiveIQ (personal build)  ·  Auto-generated from film — replace logos and decorate freely",
+             "ScoutEdge Defense  ·  Auto-generated from film — replace logos and decorate freely",
              10, FOOTER_GRAY, italic=True, font=BODY_FONT, align=PP_ALIGN.CENTER)
     return slide
 

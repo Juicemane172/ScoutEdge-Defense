@@ -19,14 +19,14 @@ def main():
     ap.add_argument("--opponent", default="Opponent", help="Opponent name")
     ap.add_argument("--week", default="1", help="Week number")
     ap.add_argument("--game-date", default=None, help="Game date, e.g. 2026-08-21 (defaults to today)")
-    ap.add_argument("--out", default=None, help="Output .xlsx path (default: <Opponent>_<Week>_DefensiveIQ.xlsx)")
+    ap.add_argument("--out", default=None, help="Output .xlsx path (default: <Opponent>_<Week>_ScoutEdge.xlsx)")
     ap.add_argument("--no-pptx", action="store_true", help="Skip generating the PowerPoint deck")
     args = ap.parse_args()
 
     df = load_playlist(args.playlist)
     print(f"Loaded {len(df)} run/pass plays from {args.playlist}")
 
-    base = (args.out or f"{args.opponent.replace(' ', '_')}_Week{args.week}_DefensiveIQ.xlsx")
+    base = (args.out or f"{args.opponent.replace(' ', '_')}_Week{args.week}_ScoutEdge.xlsx")
     if base.lower().endswith(".xlsx"):
         base = base[:-5]
 

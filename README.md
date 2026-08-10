@@ -1,8 +1,9 @@
-# DefensiveIQ (Personal Build)
+# ScoutEdge Defense (Personal Build)
 
-A personal opponent-tendency analyzer for Hudl playlist exports, rebuilt from
-scratch to match the input/output of the DefensiveIQ web tool — for your own
-use, on your own machine.
+A personal opponent-tendency analyzer for Hudl playlist exports, originally
+rebuilt from scratch to match the input/output of a web tool called
+DefensiveIQ, then rebranded as ScoutEdge Defense — for your own use, on
+your own machine.
 
 ## What it does
 
@@ -19,15 +20,16 @@ Excel tendency report:
 8. Pass Concepts
 9. Formation Tendencies
 10. Situational Summary
-11. Practice Scripts (auto-built Monday inside/pass script)
+11. Practice Scripts (Monday/Tuesday/Wednesday inside, perimeter, and team scripts)
 12. Call Sheet Builder (blank template for your calls)
 13. Game Day Call Sheet (auto-filled cheat sheet)
 
 It also generates a 7-slide **"Player Presentation" scouting deck** (`.pptx`) —
 title slide, offensive overview with metric cards, down & distance table,
 favorite runs/passes, formation tendencies, and red zone keys — styled to
-match the original DefensiveIQ deck (dark title/red-zone slides, colored
-data tables). Swap in your own team/opponent logos and it's ready to present.
+match the original DefensiveIQ deck this was rebuilt from (dark title/
+red-zone slides, colored data tables). Swap in your own team/opponent logos
+and it's ready to present.
 
 Plus **Formation Hit Chart slides** — the classic 4-panel-per-page format:
 formation name + snap count, run/pass split, backfield tendency, a quick
@@ -67,7 +69,7 @@ add it to `OPEN_BASE_NAMES` at the top of `hit_chart_builder.py`.
 pip install streamlit pandas openpyxl numpy python-pptx
 ```
 
-## Run it as a local web app (matches the DefensiveIQ interface)
+## Run it as a local web app (matches the ScoutEdge Defense interface)
 
 ```bash
 streamlit run app.py
@@ -83,7 +85,7 @@ PowerPoint scouting deck.
 python run_report.py your_playlist.xlsx --opponent "Christ The King" --week 1 --game-date 2026-08-21
 ```
 
-This generates both `..._DefensiveIQ.xlsx` and `..._DefensiveIQ_Scouting.pptx`.
+This generates both `..._ScoutEdge.xlsx` and `..._ScoutEdge_Scouting.pptx`.
 Add `--out custom_name.xlsx` to control the output filename, or `--no-pptx` to
 skip the slide deck.
 
@@ -115,7 +117,9 @@ skip the slide deck.
 
 ## Color coding
 
-Every tab now matches the color system from a real DefensiveIQ workbook
+Every tab matches the color system from a real DefensiveIQ workbook — the
+tool this project was reverse-engineered from before being rebranded
+ScoutEdge Defense
 (pulled directly from its cell fills, not guessed):
 
 - **Run columns** are always tinted light red, **pass columns** light blue,
