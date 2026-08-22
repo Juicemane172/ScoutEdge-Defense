@@ -31,23 +31,37 @@ game_date = col3.date_input("Game Date")
 st.subheader("Upload Hudl Playlist Export (.xlsx or .csv)")
 playlist_file = st.file_uploader("Playlist export", type=["xlsx", "csv"], label_visibility="collapsed")
 
+with st.expander("Advanced settings"):
+    pass_concept_col = st.text_input(
+        "Pass concept column (optional)",
+        value="",
+        help="Leave blank to read pass concepts from the PLAY column, same as run concepts "
+             "(the default). If your film is tagged with pass concepts in a separate column "
+             "instead - e.g. 'PASS FAMILY' - enter that column name here. Run concepts always "
+             "come from PLAY either way.",
+    ).strip() or None
+
 run = st.button("⚡ RUN ANALYSIS", type="primary", use_container_width=True)
 
 if run:
     if not playlist_file:
         st.error("Upload a Hudl playlist export first.")
     else:
-        with st.spinner("Analyzing plays..."):
-            df = load_playlist(playlist_file)
-            wb = build_workbook(df, opponent=opponent, week=week)
-            buf = io.BytesIO()
-            wb.save(buf)
-            buf.seek(0)
+        try:
+            with st.spinner("Analyzing plays..."):
+                df = load_playlist(playlist_file, pass_concept_col=pass_concept_col)
+                wb = build_workbook(df, opponent=opponent, week=week)
+                buf = io.BytesIO()
+                wb.save(buf)
+                buf.seek(0)
 
-            prs = build_presentation(df, opponent=opponent, week=week, game_date=game_date)
-            pptx_buf = io.BytesIO()
-            prs.save(pptx_buf)
-            pptx_buf.seek(0)
+                prs = build_presentation(df, opponent=opponent, week=week, game_date=game_date)
+                pptx_buf = io.BytesIO()
+                prs.save(pptx_buf)
+                pptx_buf.seek(0)
+        except KeyError as e:
+            st.error(str(e))
+            st.stop()
 
         st.success(f"Analysis complete — {len(df)} plays analyzed")
 

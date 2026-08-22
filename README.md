@@ -183,6 +183,23 @@ pattern in the Team Scripts (run, run, pass, pass...) is a clean, documented
 convention I built rather than an exact replica of the original's internal
 selection logic, which wasn't fully recoverable from the data alone.
 
+## Different film-tagging conventions (pass concepts in another column)
+
+By default, both run and pass concepts are read from the **PLAY** column,
+same as this whole tool was built around. If someone else's film is tagged
+differently — pass concepts live in a separate column like **PASS FAMILY**
+instead of PLAY — that's supported without changing anything for you:
+
+- **Streamlit app:** open "Advanced settings" above the Run Analysis button
+  and enter the column name (e.g. `PASS FAMILY`).
+- **Command line:** add `--pass-concept-col "PASS FAMILY"`.
+
+Leave it blank/unset and everything works exactly as it always has. When
+set, it only affects **pass** plays — run concepts always come from PLAY,
+untouched — and falls back to PLAY for any pass row where that column
+happens to be blank. A typo'd column name raises a clear error listing the
+real column names in that file, rather than a cryptic crash.
+
 ## Honest caveats
 
 This was rebuilt by reverse-engineering your own uploaded input file

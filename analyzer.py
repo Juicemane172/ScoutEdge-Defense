@@ -1,5 +1,5 @@
 """
-DefensiveIQ-style opponent tendency analyzer.
+ScoutEdge Defense-style opponent tendency analyzer.
 
 Takes a Hudl playlist export (.xlsx/.csv) and produces a multi-tab Excel
 tendency report: field-zone tendencies, run/pass/hash/formation breakdowns,
@@ -7,12 +7,13 @@ down & distance tendencies, concept efficiency, situational summary,
 practice scripts, a call sheet builder, and an auto-filled game day call sheet.
 
 Built by reverse-engineering the INPUT (Hudl export columns) and OUTPUT
-(DefensiveIQ workbook structure) of one real report — not from any source
+(ScoutEdge Defense workbook structure) of one real report — not from any source
 code, which was never available. Some internal formulas (exact "success
 rate" definition, field-zone boundaries) are inferred from the data and are
 documented inline; tweak the constants below if your own eye test disagrees.
 """
 
+import re
 import pandas as pd
 import numpy as np
 from collections import Counter
@@ -112,14 +113,24 @@ def is_success(dn, dist, gain):
     return None
 
 
-def load_playlist(path):
-    """Read a Hudl playlist export (.xlsx or .csv) and clean it up."""
+def load_playlist(path, pass_concept_col=None):
+    """Read a Hudl playlist export (.xlsx or .csv) and clean it up.
+
+    pass_concept_col: optional column name to pull PASS concepts from instead
+    of the default PLAY column (e.g. "PASS FAMILY" for a coach/analyst who
+    tags pass concepts separately from the PLAY column). Run concepts always
+    come from PLAY, unaffected. Falls back to PLAY for any pass row where
+    the named column is blank. Leave as None to keep the default behavior
+    exactly as-is - this is fully opt-in.
+    """
     if str(path).lower().endswith(".csv"):
         df = pd.read_csv(path)
     else:
         df = pd.read_excel(path)
 
-    df.columns = [c.strip().upper() for c in df.columns]
+    # Collapse any stray double-spaces in header names (e.g. "PASS  CONCEPT")
+    # so column references don't silently fail on cosmetic whitespace.
+    df.columns = [re.sub(r"\s+", " ", str(c).strip().upper()) for c in df.columns]
 
     # Drop no-play / penalty rows and rows missing the essentials
     if "RESULT" in df.columns:
@@ -136,6 +147,17 @@ def load_playlist(path):
         axis=1,
     )
     df["CONCEPT"] = df.get("PLAY")
+    if pass_concept_col:
+        override_col = re.sub(r"\s+", " ", pass_concept_col.strip().upper())
+        if override_col in df.columns:
+            is_pass = df["PLAY TYPE"] == "Pass"
+            override_vals = df.loc[is_pass, override_col]
+            df.loc[is_pass, "CONCEPT"] = override_vals.combine_first(df.loc[is_pass, "CONCEPT"])
+        else:
+            raise KeyError(
+                f"pass_concept_col '{pass_concept_col}' not found in this file. "
+                f"Available columns: {', '.join(df.columns)}"
+            )
     df["FORMATION"] = df.get("FORMATION")
     df["HASH"] = df.get("HASH")
     df["BACKFIELD"] = df.get("BACKFIELD")
