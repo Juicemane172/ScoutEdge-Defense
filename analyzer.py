@@ -151,8 +151,24 @@ def load_playlist(path, pass_concept_col=None):
         override_col = re.sub(r"\s+", " ", pass_concept_col.strip().upper())
         if override_col in df.columns:
             is_pass = df["PLAY TYPE"] == "Pass"
-            override_vals = df.loc[is_pass, override_col]
-            df.loc[is_pass, "CONCEPT"] = override_vals.combine_first(df.loc[is_pass, "CONCEPT"])
+            # Treat blank/whitespace-only cells as missing too, not just true
+            # NaN, in case the source file has empty-string cells rather
+            # than actual blanks (common with exported formula results).
+            raw_override = df.loc[is_pass, override_col]
+            cleaned_override = raw_override.astype(str).str.strip()
+            cleaned_override = cleaned_override.where(
+                ~cleaned_override.isin(["", "nan", "none", "None", "NaN"]), other=pd.NA
+            )
+            cleaned_override.loc[raw_override.isna()] = pd.NA
+            n_total_pass = int(is_pass.sum())
+            n_overridden = int(cleaned_override.notna().sum())
+            df.loc[is_pass, "CONCEPT"] = cleaned_override.combine_first(df.loc[is_pass, "CONCEPT"])
+            df.attrs["pass_concept_override"] = {
+                "column": pass_concept_col,
+                "total_pass_plays": n_total_pass,
+                "overridden": n_overridden,
+                "fell_back_to_play": n_total_pass - n_overridden,
+            }
         else:
             raise KeyError(
                 f"pass_concept_col '{pass_concept_col}' not found in this file. "

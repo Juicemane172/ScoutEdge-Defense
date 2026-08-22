@@ -65,6 +65,23 @@ if run:
 
         st.success(f"Analysis complete — {len(df)} plays analyzed")
 
+        if "pass_concept_override" in df.attrs:
+            stats = df.attrs["pass_concept_override"]
+            if stats["overridden"] == 0:
+                st.warning(
+                    f"'{stats['column']}' was blank for all {stats['total_pass_plays']} pass plays — "
+                    f"every pass concept fell back to the PLAY column. Double-check that's the right "
+                    f"column name, or that it's actually filled in for this file."
+                )
+            elif stats["fell_back_to_play"] > 0:
+                st.info(
+                    f"Pass concepts: {stats['overridden']} of {stats['total_pass_plays']} pass plays "
+                    f"used '{stats['column']}'; {stats['fell_back_to_play']} fell back to PLAY "
+                    f"(blank in that column for those rows)."
+                )
+            else:
+                st.info(f"All {stats['total_pass_plays']} pass plays used '{stats['column']}' for their concept.")
+
         runs = (df["PLAY TYPE"] == "Run").sum()
         passes = (df["PLAY TYPE"] == "Pass").sum()
         total = runs + passes

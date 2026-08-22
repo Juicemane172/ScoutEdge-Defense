@@ -28,6 +28,11 @@ def main():
 
     df = load_playlist(args.playlist, pass_concept_col=args.pass_concept_col)
     print(f"Loaded {len(df)} run/pass plays from {args.playlist}")
+    if "pass_concept_override" in df.attrs:
+        stats = df.attrs["pass_concept_override"]
+        print(f"Pass concept override ('{stats['column']}'): {stats['overridden']} of "
+              f"{stats['total_pass_plays']} pass plays used it, "
+              f"{stats['fell_back_to_play']} fell back to PLAY (blank in that column).")
 
     base = (args.out or f"{args.opponent.replace(' ', '_')}_Week{args.week}_ScoutEdge.xlsx")
     if base.lower().endswith(".xlsx"):
