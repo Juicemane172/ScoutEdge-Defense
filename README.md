@@ -165,9 +165,10 @@ Distance Hit Chart slides in the PowerPoint deck.
 The Practice Scripts tab now covers three full practice days, matching the
 original workbook's structure — not just Monday:
 
-- **Monday** — Favorites (all downs)
-- **Tuesday** — 2nd down situations only
-- **Wednesday** — 3rd down situations only
+- **Monday** — Normal downs: P & 10, 1st down, 2nd down
+- **Tuesday** — Normal downs again (same install, different film
+  instances of those same concepts, so it isn't a duplicate sheet)
+- **Wednesday** — 3rd down only
 
 Each day has the same five sections: Formation Alignment (top 12, padded
 with blank numbered slots if fewer formations qualify), Inside Script (top

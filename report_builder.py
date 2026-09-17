@@ -1,4 +1,4 @@
-"""Builds the DefensiveIQ-style Excel workbook from an analyzed dataframe."""
+"""Builds the ScoutEdge Defense-style Excel workbook from an analyzed dataframe."""
 
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -14,7 +14,8 @@ from analyzer import (
 
 # ------------------------------------------------------------------
 # Color palette — pulled directly from cell fills in a real DefensiveIQ
-# workbook, not guessed. Reused consistently across every sheet below.
+# workbook (the tool this project was rebuilt from and rebranded as
+# ScoutEdge Defense), not guessed. Reused consistently across every sheet below.
 # ------------------------------------------------------------------
 NAVY = "16213E"       # neutral sheet headers/titles
 RUN_RED = "C0392B"    # run-themed titles/headers, 3rd-down urgency
@@ -519,28 +520,33 @@ def _dn_dist_label(dn, dist):
     return f"{ordinal} & {int(dist)}"
 
 
-def _pick_reps(cdf, n=2):
+def _pick_reps(cdf, n=2, offset=0):
     """Pick up to n real play instances for practice reps, preferring
-    different hashes for variety rather than two identical looks."""
-    picked = []
+    different hashes for variety rather than two identical looks.
+
+    offset: skip this many already-used instances first, so a second
+    practice day repping the same concept shows different film examples
+    rather than duplicating the first day's rows. If the concept doesn't
+    have enough distinct instances, it wraps around rather than coming
+    back empty.
+    """
+    ordered = []
     picked_idx = set()
     seen_hash = set()
     for idx, row in cdf.iterrows():
         h = row.get("HASH")
         if h not in seen_hash:
-            picked.append(row)
+            ordered.append(row)
             picked_idx.add(idx)
             seen_hash.add(h)
-        if len(picked) >= n:
-            break
-    if len(picked) < n:
-        for idx, row in cdf.iterrows():
-            if len(picked) >= n:
-                break
-            if idx not in picked_idx:
-                picked.append(row)
-                picked_idx.add(idx)
-    return picked[:n]
+    for idx, row in cdf.iterrows():
+        if idx not in picked_idx:
+            ordered.append(row)
+            picked_idx.add(idx)
+    if not ordered:
+        return []
+    return [ordered[(offset + k) % len(ordered)] for k in range(min(n, len(ordered)))] \
+        if offset else ordered[:n]
 
 
 def _formation_alignment_block(ws, r, day_df):
@@ -565,10 +571,13 @@ def _formation_alignment_block(ws, r, day_df):
     return r + 1
 
 
-def _concept_script_block(ws, r, day_df, play_type, n_concepts, header_text, header_color, reps=2):
+def _concept_script_block(ws, r, day_df, play_type, n_concepts, header_text, header_color, reps=2, rep_offset=0):
     """Writes a run or pass concept script (top n_concepts, `reps` real
     instances each). Returns (next_row, [(concept, [rep_rows]), ...]) so
-    Team Scripts can reuse the same concept/rep data."""
+    Team Scripts can reuse the same concept/rep data.
+
+    rep_offset shifts which film instances get used, so two days running
+    the same down filter don't produce byte-identical scripts."""
     header_fill = PatternFill("solid", fgColor=header_color)
     c = ws.cell(row=r, column=1, value=header_text)
     c.font = Font(bold=True, italic=True, color="FFFFFF")
@@ -586,7 +595,7 @@ def _concept_script_block(ws, r, day_df, play_type, n_concepts, header_text, hea
     i = 1
     for concept in counts.index:
         cdf = sub[sub["CONCEPT"] == concept]
-        rep_rows = _pick_reps(cdf, reps)
+        rep_rows = _pick_reps(cdf, reps, offset=rep_offset)
         concept_reps.append((concept, rep_rows))
         for rep in rep_rows:
             _write_row(ws, r, [i, rep.get("HASH"), rep.get("FORMATION"), concept,
@@ -633,10 +642,19 @@ def _team_script_block(ws, r, title, run_pool, pass_pool, run_used, pass_used, s
     return r + 1, ri, pi
 
 
+# Normal down days cover P & 10 (DN=0), 1st down, and 2nd down - the
+# down-and-distances an offense calls from its base menu. 3rd down gets its
+# own day since the call sheet narrows so much there.
+NORMAL_DOWNS = [0, 1, 2]
+
+# (label, subtitle, downs, rep_offset). Monday and Tuesday share the same
+# normal-down filter, so Tuesday uses rep_offset=2 to pull *different* film
+# instances of the same concepts - same install, fresh looks, rather than a
+# byte-identical second sheet.
 PRACTICE_DAYS = [
-    ("MONDAY", "FAVORITES (ALL DOWNS)", None),
-    ("TUESDAY", "2ND DOWN", 2),
-    ("WEDNESDAY", "3RD DOWN", 3),
+    ("MONDAY", "NORMAL DOWNS  (P & 10 · 1st · 2nd)", NORMAL_DOWNS, 0),
+    ("TUESDAY", "NORMAL DOWNS  (P & 10 · 1st · 2nd)", NORMAL_DOWNS, 2),
+    ("WEDNESDAY", "3RD DOWN", [3], 0),
 ]
 
 
@@ -644,17 +662,19 @@ def build_practice_scripts(wb, df):
     ws = wb.create_sheet("11. Practice Scripts")
     _title(ws, "PRACTICE SCRIPTS   ·   auto-pulled from film", span=8, sheet_name="11. Practice Scripts")
     r = 3
-    for day, subtitle, dn_filter in PRACTICE_DAYS:
-        day_df = df if dn_filter is None else df[df["DN"] == dn_filter]
+    for day, subtitle, downs, rep_offset in PRACTICE_DAYS:
+        day_df = df[df["DN"].isin(downs)]
         if len(day_df) == 0:
             continue
         ws.cell(row=r, column=1, value=f"{day}  ·  {subtitle}").font = Font(bold=True, size=12)
         r += 1
         r = _formation_alignment_block(ws, r, day_df)
         r, run_reps = _concept_script_block(ws, r, day_df, "Run", 5,
-                                             "INSIDE SCRIPT  (top run concepts, coach fills front/coverage)", RUN_RED)
+                                             "INSIDE SCRIPT  (top run concepts, coach fills front/coverage)",
+                                             RUN_RED, rep_offset=rep_offset)
         r, pass_reps = _concept_script_block(ws, r, day_df, "Pass", 8,
-                                              "PERIMETER SCRIPT  (favorite passes)", PASS_BLUE)
+                                              "PERIMETER SCRIPT  (favorite passes)",
+                                              PASS_BLUE, rep_offset=rep_offset)
         r, ri, pi = _team_script_block(ws, r, "TEAM SCRIPT 1", run_reps, pass_reps, 0, 0, slots=10)
         r, ri, pi = _team_script_block(ws, r, "TEAM SCRIPT 2", run_reps, pass_reps, ri, pi, slots=10)
         r += 1
