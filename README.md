@@ -66,7 +66,7 @@ add it to `OPEN_BASE_NAMES` at the top of `hit_chart_builder.py`.
 ## Setup
 
 ```bash
-pip install streamlit pandas openpyxl numpy python-pptx
+pip install streamlit pandas openpyxl numpy python-pptx reportlab
 ```
 
 ## Run it as a local web app (matches the ScoutEdge Defense interface)
@@ -112,8 +112,10 @@ skip the slide deck.
   slides (also appended to the deck). Fully data-driven — no generic
   guessing involved, since it's just run/pass split, top formations, and
   top concepts per situation.
-- `run_report.py` — command-line entry point (Excel + PowerPoint).
-- `app.py` — Streamlit UI (Excel + PowerPoint download buttons).
+- `five_factors.py` — the Quick Facts metrics engine (expected points, drives, grades).
+- `quick_facts_pdf.py` — builds the Quick Facts PDF.
+- `run_report.py` — command-line entry point (Excel + PowerPoint + PDF).
+- `app.py` — Streamlit UI (Excel, PowerPoint and PDF download buttons).
 
 ## Color coding
 
@@ -201,6 +203,40 @@ untouched — and falls back to PLAY for any pass row where that column
 happens to be blank. A typo'd column name raises a clear error listing the
 real column names in that file, rather than a cryptic crash.
 
+## Quick Facts PDF (five-factor scouting summary)
+
+A separate, printable 4-page export alongside the Excel and PowerPoint files:
+
+1. **Snapshot** - the five factors (Efficiency, Explosiveness, Field Position,
+   Finishing Drives, Turnovers) as cards with grades, a radar chart, plain-English
+   takeaways written from the defense's point of view, and the biggest situational
+   tendencies.
+2. **Run Game** and 3. **Passing Game** - metric tables plus splits by down
+   (including P & 10) and by quarter.
+4. **Glossary and Method** - every metric defined, plus the assumptions.
+
+Grade chips are colored by **threat to our defense**: red = strong offensive trait,
+amber = average, green = a soft spot to attack.
+
+**What it can and can't do:**
+- Quarter splits need a `QTR` column in the Hudl export; without one the table says so.
+- **Field Position** and **Finishing Drives** need to know where drives start. They use
+  your P & 10 tags (DN = 0) when present. With no tags and plays in game order, drive
+  breaks are *estimated* (against a tagged file, 15 of 17 drive starts were recovered
+  with no false ones). A clip playlist grouped by play type, out of game order, shows
+  "N/A" for those two factors rather than inventing numbers. Several games in one
+  playlist are fine - a restart in `PLAY #` is treated as a new game.
+- Expected points (xPP) uses an approximate field-position curve and the grade bands
+  are rule-of-thumb defaults. Both are constants at the top of `five_factors.py` -
+  tune them against the offenses you see. The radar's dashed ring is a typical-offense
+  benchmark built from those assumptions, not data from other teams.
+- It describes one offense's film. There is no opponent comparison, expected margin,
+  or league average.
+
+Needs `reportlab` (add it to `requirements.txt` on GitHub). If it's missing, the app
+still produces the Excel and PowerPoint files and shows a notice instead of the PDF.
+From the command line: `--no-pdf` skips it.
+
 ## Honest caveats
 
 This was rebuilt by reverse-engineering your own uploaded input file
@@ -211,9 +247,11 @@ exact:
 
 - **Field zone boundaries** (BZ/OF/MF/FZ/RZ/GL) — matched to your sample data,
   double-check them against a few known plays.
-- **"Success rate"** uses the common analytics convention (1st down ≥40% of
-  distance, 2nd down ≥60%, 3rd/4th down = full conversion). The original tool
-  may define it differently.
+- **"Success rate"** follows the widely used definition: a play succeeds if it gains
+  50% of the yards-to-go on 1st down (and P & 10), 70% on 2nd down, and 100% on
+  3rd/4th down. The thresholds are `SUCCESS_1ST` / `SUCCESS_2ND` in `analyzer.py`.
+  (Earlier versions used 40%/60% and skipped P & 10 plays, so success numbers in
+  the Excel and PowerPoint files are lower and cover more plays than before.)
 - **Play direction** (left/right) isn't in a standard Hudl playlist export, so
   that column shows hash data instead — same limitation the original tool
   had (its own "Top Direction" columns were also blank on your sample).

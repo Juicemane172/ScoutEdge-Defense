@@ -97,17 +97,23 @@ def dd_bucket(dn, dist):
     return "OTHER"
 
 
+# Share of yards-to-go a play must gain to count as "successful".
+# 1st down 50%, 2nd down 70%, 3rd/4th down 100% (a conversion) - the
+# widely used success-rate definition. Edit here to change it everywhere.
+SUCCESS_1ST = 0.5
+SUCCESS_2ND = 0.7
+
+
 def is_success(dn, dist, gain):
-    """Standard down-based success-rate heuristic:
-    1st down: >=40% of distance. 2nd down: >=60% of distance.
-    3rd/4th down: full conversion (>= distance)."""
+    """Down-based success: 1st down (and P & 10, DN=0) must gain 50% of
+    the distance, 2nd down 70%, 3rd/4th down the full distance."""
     if pd.isna(dn) or pd.isna(dist) or pd.isna(gain):
         return None
     dn = int(dn)
-    if dn == 1:
-        return gain >= 0.4 * dist
+    if dn in (0, 1):
+        return gain >= SUCCESS_1ST * dist
     if dn == 2:
-        return gain >= 0.6 * dist
+        return gain >= SUCCESS_2ND * dist
     if dn in (3, 4):
         return gain >= dist
     return None

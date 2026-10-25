@@ -14,6 +14,15 @@ from analyzer import load_playlist
 from report_builder import build_workbook
 from pptx_builder import build_presentation
 
+# The Quick Facts PDF is optional: if reportlab isn't installed yet, the
+# Excel and PowerPoint exports still work and the app says what to add.
+try:
+    from quick_facts_pdf import build_quick_facts_pdf
+    PDF_IMPORT_ERROR = None
+except Exception as exc:  # pragma: no cover
+    build_quick_facts_pdf = None
+    PDF_IMPORT_ERROR = str(exc)
+
 st.set_page_config(page_title="ScoutEdge Defense", page_icon="🏈", layout="centered")
 
 st.markdown(
@@ -59,6 +68,17 @@ if run:
                 pptx_buf = io.BytesIO()
                 prs.save(pptx_buf)
                 pptx_buf.seek(0)
+
+                pdf_buf, pdf_problem = None, None
+                if build_quick_facts_pdf is None:
+                    pdf_problem = f"reportlab isn't installed ({PDF_IMPORT_ERROR}). Add `reportlab` to requirements.txt."
+                else:
+                    try:
+                        pdf_buf = io.BytesIO()
+                        build_quick_facts_pdf(df, opponent=opponent, week=week, game_date=game_date, out=pdf_buf)
+                        pdf_buf.seek(0)
+                    except Exception as exc:
+                        pdf_buf, pdf_problem = None, str(exc)
         except KeyError as e:
             st.error(str(e))
             st.stop()
@@ -96,7 +116,7 @@ if run:
         c5.metric("GL Run %", f"{round((gl['PLAY TYPE']=='Run').mean()*100) if len(gl) else 0}%")
 
         st.subheader("Download Your Reports")
-        col_a, col_b = st.columns(2)
+        col_a, col_b, col_c = st.columns(3)
         col_a.download_button(
             "📊 EXCEL WORKBOOK",
             data=buf,
@@ -111,6 +131,16 @@ if run:
             mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
             use_container_width=True,
         )
+        if pdf_buf is not None:
+            col_c.download_button(
+                "📄 QUICK FACTS (PDF)",
+                data=pdf_buf,
+                file_name=f"{opponent.replace(' ', '_')}_Week{week}_ScoutEdge_QuickFacts.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+            )
+        else:
+            col_c.warning(f"Quick Facts PDF unavailable: {pdf_problem}")
 
 st.caption(
     "Personal rebuild — analysis logic (zone boundaries, success-rate formula, explosive-play "

@@ -4,7 +4,7 @@ Usage:
     python run_report.py PLAYLIST.xlsx --opponent "Christ The King" --week 1 --game-date 2026-08-21 --out report.xlsx
 
 PLAYLIST.xlsx is a Hudl playlist export (.xlsx or .csv).
-Generates both the Excel workbook and a PowerPoint scouting-report deck.
+Generates the Excel workbook, a PowerPoint scouting-report deck, and a Quick Facts PDF.
 """
 import argparse
 import datetime
@@ -21,6 +21,7 @@ def main():
     ap.add_argument("--game-date", default=None, help="Game date, e.g. 2026-08-21 (defaults to today)")
     ap.add_argument("--out", default=None, help="Output .xlsx path (default: <Opponent>_<Week>_ScoutEdge.xlsx)")
     ap.add_argument("--no-pptx", action="store_true", help="Skip generating the PowerPoint deck")
+    ap.add_argument("--no-pdf", action="store_true", help="Skip generating the Quick Facts PDF")
     ap.add_argument("--pass-concept-col", default=None,
                      help="Optional: pull PASS concepts from this column instead of PLAY "
                           "(e.g. 'PASS FAMILY'). Run concepts always come from PLAY, unaffected.")
@@ -49,6 +50,17 @@ def main():
         pptx_path = base + "_Scouting.pptx"
         prs.save(pptx_path)
         print(f"Saved PowerPoint deck to {pptx_path}")
+
+    if not args.no_pdf:
+        try:
+            from quick_facts_pdf import build_quick_facts_pdf
+        except ImportError as exc:
+            print(f"Skipped Quick Facts PDF - {exc}. Install it with: pip install reportlab")
+        else:
+            game_date = datetime.datetime.strptime(args.game_date, "%Y-%m-%d").date() if args.game_date else datetime.date.today()
+            pdf_path = base + "_QuickFacts.pdf"
+            build_quick_facts_pdf(df, opponent=args.opponent, week=args.week, game_date=game_date, out=pdf_path)
+            print(f"Saved Quick Facts PDF to {pdf_path}")
 
 
 if __name__ == "__main__":
